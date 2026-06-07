@@ -1,0 +1,8 @@
+*.ics
+*.zip
+*ledger*.json
+Scratchpad/
+Downloads/
+*.env
+*token*
+*secret*
