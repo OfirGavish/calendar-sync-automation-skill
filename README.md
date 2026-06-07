@@ -5,12 +5,13 @@ Browser-based bidirectional calendar sync between Google Calendar and Microsoft 
 ## What it does
 
 - **Google Calendar -> Outlook:** exports Google Calendar as ICS, parses busy personal events, and creates matching Outlook busy blocks.
-- **Outlook -> Google shared calendar:** reads Outlook work events, generates a sanitized ICS file, and imports it into a selected Google calendar such as `Family`.
+- **Outlook -> Google shared calendar:** reads Outlook work events, generates a sanitized ICS file, and imports only away-from-home work blocks into a selected Google calendar such as `Family`.
 - Uses browser automation and ICS files only; no Google Cloud project, Calendar API, CalDAV, IMAP, or app passwords are required.
 
 ## Privacy defaults
 
 - Shared Google calendar entries are sanitized as generic blocks such as `Work/customer day` or `Work onsite`.
+- Shared Google calendar entries are only for times the user is away from home or must physically be at a customer/office/site.
 - Customer names, internal meeting names, Teams links, room names, attendees, organizers, and notes are not copied to shared calendars.
 - Personal events copied to Outlook may preserve titles, but not locations, descriptions, attendees, or notes unless explicitly requested.
 
