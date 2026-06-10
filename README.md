@@ -12,6 +12,7 @@ Browser-based bidirectional calendar sync between Google Calendar and Microsoft 
 
 - Shared Google calendar entries are sanitized as generic blocks such as `Work/customer day` or `Work onsite`.
 - Shared Google calendar entries are only for times the user is away from home or must physically be at a customer/office/site.
+- Short away-from-home meetings stay short; the workflow preserves the source start/end time and does not convert them to full-day blocks.
 - Customer names, internal meeting names, Teams links, room names, attendees, organizers, and notes are not copied to shared calendars.
 - Personal events copied to Outlook may preserve titles, but not locations, descriptions, attendees, or notes unless explicitly requested.
 - Generic work blocks previously imported into a shared Google calendar are ignored when syncing Google back to Outlook to prevent loops.

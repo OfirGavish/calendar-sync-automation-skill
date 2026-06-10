@@ -27,9 +27,10 @@ Use this skill when a user wants scheduled bidirectional sync between Google Cal
 2. For shared/family calendar descriptions, use generic text such as `Copied from work calendar for family visibility.` Do not include customer names, internal meeting names, Teams links, room names, attendees, organizers, notes, or confidential details.
 3. For Google personal/shared-family -> Outlook, if copying titles, copy title only; do not copy location, description, attendees, attachments, or notes.
 4. Shared/family calendar entries are only for times the user is away from home or must physically be at a customer/office/site. Exclude remote meetings, online events, and meetings the user can do from home.
-5. Use local ledgers to avoid duplicate imports and persist user-confirmed exclusions. If duplicate behavior or away-from-home status is uncertain, stop and ask rather than importing.
-6. Do not send email or Teams notifications as part of the sync unless separately requested and confirmed.
-7. If the browser is not signed in, the target Google calendar is missing, or the UI flow changes, stop and report the blocker.
+5. Short away-from-home meetings should be copied as short timed events using their real start/end times, not excluded and not converted to full-day/all-day blocks.
+6. Use local ledgers to avoid duplicate imports and persist user-confirmed exclusions. If duplicate behavior or away-from-home status is uncertain, stop and ask rather than importing.
+7. Do not send email or Teams notifications as part of the sync unless separately requested and confirmed.
+8. If the browser is not signed in, the target Google calendar is missing, or the UI flow changes, stop and report the blocker.
 
 ## Recommended local artifacts
 
@@ -56,9 +57,9 @@ Avoid storing secrets. Do not write pasted passwords or tokens to files unless e
 ## Outlook -> Google shared calendar implementation outline
 
 1. Use `workiq_list_events` to read Outlook events for the next 45 days.
-2. Select only candidate work blocks that likely require the user to leave home: long self-owned customer-day blocks, explicit travel/onsite/customer-site events, or physical customer/office/site locations. Good signals include all/most-day blocks, travel time, location that is clearly not Teams/URL/online, or user-confirmed customer-day keywords.
-3. Exclude cancelled events, remote meetings, Teams/online-only meetings, office hours, broad online trainings, recurring short meetings, optional/community events, and events listed in the ledger's exclusions. Short meetings under 4 hours should not be imported unless they explicitly require travel/being away from home and the user has confirmed that pattern. If a location looks physical but the meeting could be done from home, ask before importing.
-4. Generate sanitized ICS with deterministic UID from Outlook event ID. For shared/family target calendars, summary must be generic, for example `Work/customer day`, `Work onsite`, or `Away for work`. Description must be generic.
+2. Select only candidate work blocks that likely require the user to leave home: explicit travel/onsite/customer-site events, physical customer/office/site locations, long self-owned customer-day blocks, or user-confirmed customer/onsite keywords. Good signals include travel time, location that is clearly not Teams/URL/online, or user-confirmed customer-day keywords.
+3. Short meetings are allowed when they require being away from home or physically at a customer/office/site; import them as their actual short timed events. Exclude cancelled events, remote meetings, Teams/online-only meetings, office hours, broad online trainings, optional/community events, and events listed in the ledger's exclusions for non-duration reasons. If a location looks physical but the meeting could be done from home, ask before importing.
+4. Generate sanitized ICS with deterministic UID from Outlook event ID. For shared/family target calendars, summary must be generic, for example `Work/customer day`, `Work onsite`, or `Away for work`. Description must be generic. DTSTART/DTEND must match the source event start/end.
 5. Compare generated event hashes against `work-to-family-import-ledger.json`. Include only new UIDs or changed events that are not excluded and when update behavior has been validated. If Google import would duplicate changed events, ask the user before importing.
 6. Navigate to Google Calendar Import & export page. Select file, choose target calendar by exact name, import.
 7. After successful import, update the ledger.
