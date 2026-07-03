@@ -8,6 +8,10 @@ Browser-based bidirectional calendar sync between Google Calendar and Microsoft 
 - **Outlook -> Google shared calendar:** reads Outlook work events, generates a sanitized ICS file, and imports only away-from-home work blocks into a selected Google calendar such as `Family`.
 - Uses browser automation and ICS files only; no Google Cloud project, Calendar API, CalDAV, IMAP, or app passwords are required.
 
+## Google Calendar export note
+
+Google Calendar's all-calendars export may now include only the primary Gmail calendar ICS. The skill exports shared calendars such as `Family` separately from that calendar's settings page and resolves relative `exporticalzip?cexp=...` links to the correct `https://calendar.google.com/calendar/u/0/exporticalzip?cexp=...` endpoint before parsing.
+
 ## Privacy defaults
 
 - Shared Google calendar entries are sanitized as generic blocks such as `Work/customer day` or `Work onsite`.

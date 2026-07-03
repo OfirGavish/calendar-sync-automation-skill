@@ -14,6 +14,14 @@ Use this skill when a user wants scheduled bidirectional sync between Google Cal
 4. For Outlook -> Google shared calendar: read Outlook work events with `workiq_list_events`, generate a sanitized ICS file, then use Google Calendar Settings -> Import & export -> Import to import into the target Google calendar selected by name.
 5. Use Clawpilot automations for scheduled runs after manually verifying the browser profile is signed in and the Google import/export UI is reachable.
 
+## Current Google Calendar export behavior
+
+1. As of late June/early July 2026, the Gmail/Google Calendar **Import & export -> Export** all-calendars ZIP may only include the primary Gmail calendar ICS, even when the `Family` calendar is visible and editable in the UI. Do not assume the global export contains `Family`.
+2. For Google -> Outlook, export the primary calendar from `https://calendar.google.com/calendar/u/0/r/settings/export`, then export `Family` separately from **Settings for my calendars -> Family -> Calendar settings -> Export calendar**.
+3. The `Family` calendar export link in the DOM may be a relative `exporticalzip?cexp=...` href. Resolve it against `https://calendar.google.com/calendar/u/0/` to form `https://calendar.google.com/calendar/u/0/exporticalzip?cexp=...`; resolving it against the current settings URL returns an HTML settings page instead of a ZIP.
+4. If the Playwright download event times out for the `Family` export, fetch the absolute export URL from the signed-in browser context with credentials included, and require `content-type: application/zip` plus a ZIP containing `Family_...@group.calendar.google.com.ics`. If the response is HTML, the endpoint was resolved incorrectly or Google changed the flow; stop rather than using stale `Family` data.
+5. Keep the browser session/profile usable across runs. Prefer the built-in browser automation session; if a fallback Node/Playwright persistent context is used, complete all browser work in one process and release the context so later runs do not hit a locked-profile `Opening in existing browser session` failure.
+
 ## Required setup questions
 
 1. Ask for the Google target calendar name for Outlook -> Google imports, for example `Family`.
@@ -47,12 +55,14 @@ Avoid storing secrets. Do not write pasted passwords or tokens to files unless e
 
 1. Navigate to `https://calendar.google.com/calendar/u/0/r/settings/export`.
 2. Click Export and wait for the ZIP download in Downloads.
-3. Extract ZIP locally. Identify the user's primary calendar ICS and any user-approved shared calendars such as `Family`. Exclude Birthdays/Holidays unless the user asks to sync them.
-4. Parse ICS for the next 30 days, expanding RRULE recurrence using installed Python libraries if available: `icalendar` and `recurring_ical_events`. If missing, install with `python -m pip install --user icalendar recurring-ical-events python-dateutil`.
-5. Skip any shared-calendar event that is a work-to-shared-calendar artifact: summaries like `Work/customer day`, `Work onsite`, `Away for work`, or `Work travel`, or descriptions containing `Copied from work calendar for family visibility.` This prevents loops back into Outlook.
-6. Classify as busy: timed opaque events, or titles indicating appointment, doctor, dentist, travel, school, pickup/dropoff, sports ceremony, graduation, end-of-year event, required personal obligation, or local-language equivalents. Treat birthdays, holidays, reminders, and all-day informational events as free unless clearly blocking.
-7. For each busy event, check Outlook for matching marker `[clawpilot-google-sync:<google_uid>]`, `google-export-processing-ledger.json`, and overlapping events. Create idempotent Outlook busy events via `workiq_create_event`. Subject: copied Google title if configured; otherwise `Personal busy`. Body should contain only the sync marker and generic source note.
-8. Update `google-export-processing-ledger.json` after successful writes.
+3. Extract ZIP locally and verify whether it contains only the primary Gmail ICS or also shared calendars. If `Family` is missing, do not proceed with only primary data.
+4. Export `Family` separately from its calendar settings page. Use the exact `Family` calendar settings URL discovered from the left navigation when possible. If the export href is relative, resolve it to `https://calendar.google.com/calendar/u/0/exporticalzip?cexp=...`, not relative to `/r/settings/calendar/...`.
+5. Extract the `Family` ZIP locally and require a `Family` ICS file. Exclude Birthdays/Holidays unless the user asks to sync them.
+6. Parse both primary and `Family` ICS files for the next 30 days, expanding RRULE recurrence using installed Python libraries if available: `icalendar` and `recurring_ical_events`. If missing, install with `python -m pip install --user icalendar recurring-ical-events python-dateutil`.
+7. Skip any shared-calendar event that is a work-to-shared-calendar artifact: summaries like `Work/customer day`, `Work onsite`, `Away for work`, or `Work travel`, or descriptions containing `Copied from work calendar for family visibility.` This prevents loops back into Outlook.
+8. Classify as busy: timed opaque events, or titles indicating appointment, doctor, dentist, travel, school, pickup/dropoff, sports ceremony, graduation, end-of-year event, required personal obligation, or local-language equivalents. Treat birthdays, holidays, reminders, and all-day informational events as free unless clearly blocking.
+9. For each busy event, check Outlook for matching marker `[clawpilot-google-sync:<google_uid>]`, `google-export-processing-ledger.json`, and overlapping events. Create idempotent Outlook busy events via `workiq_create_event`. Subject: copied Google title if configured; otherwise `Personal busy`. Body should contain only the sync marker and generic source note. Create events sequentially to avoid Graph mailbox concurrency throttling.
+10. Update `google-export-processing-ledger.json` after successful writes.
 
 ## Outlook -> Google shared calendar implementation outline
 
