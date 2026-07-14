@@ -74,6 +74,20 @@ Avoid storing secrets. Do not write pasted passwords or tokens to files unless e
 6. Navigate to Google Calendar Import & export page. Select file, choose target calendar by exact name, import.
 7. After successful import, update the ledger.
 
+## Away-from-home classification rules (avoid false full-day blocks)
+
+These rules keep short remote days from being copied to the shared calendar as onsite/customer blocks. They were hardened after a real incident: a long Outlook hold titled only with a customer name (e.g. `IAI`) and an **empty location** was wrongly classified as a full `Work/customer day`, and the block persisted on the shared calendar even after the source hold was deleted.
+
+1. **An empty or unknown location is NOT evidence of being on-site.** Never treat a blank location as "not online, therefore physical." Blank location = unknown, which is not a positive signal.
+2. **A bare customer/product name in the subject (e.g. `IAI`, `מכבי`) is a weak signal and is NOT sufficient on its own.** It only qualifies when paired with a concrete physical location.
+3. Import a block as away-from-home only when at least one of these holds:
+   - the subject explicitly states travel / on-site / at-customer (`onsite`, `on-site`, `travel`, `נסיעה`, `אצל הלקוח`, `בלקוח`, `בשטח`, etc.) and it is not an online meeting (short durations allowed); or
+   - the location is a concrete physical place (office room codes like `HRZ`/`MPR`/`Conf room`, a venue, a floor/room such as `קומה`/`חדר ישיבות`, or a city/street) AND the block is `busy`/`tentative`; or
+   - a customer-name keyword is present AND the location is a concrete physical place.
+4. Reserve `Work/customer day` for genuinely long days (roughly 6h+). Shorter physical blocks become `Work onsite` (or `Away for work` for explicit short travel) and MUST preserve the real start/end window — never expand a short meeting into a full day.
+5. Ambiguous cases (a long-ish `busy` block with a customer keyword but no physical-location proof) must NOT be auto-imported. Surface them to the user for confirmation instead.
+6. Because Google ICS import cannot delete, a wrongly-imported block must be removed from the shared calendar via the browser (open the day view, click the sanitized chip, Delete event), then removed from `work-to-family-import-ledger.json` and added to its `excluded` list so it is never re-imported. Prefer verifying the source Outlook event still exists before relying on a prior import.
+
 ## Automation setup
 
 1. Verify Playwright/browser can open Google Calendar and that the user is signed in. If Google asks for passkey/2FA, prompt the user to complete it.
