@@ -64,6 +64,18 @@ Avoid storing secrets. Do not write pasted passwords or tokens to files unless e
 9. For each busy event, check Outlook for matching marker `[clawpilot-google-sync:<google_uid>]`, `google-export-processing-ledger.json`, and overlapping events. Create idempotent Outlook busy events via `workiq_create_event`. Subject: copied Google title if configured; otherwise `Personal busy`. Body should contain only the sync marker and generic source note. Create events sequentially to avoid Graph mailbox concurrency throttling.
 10. Update `google-export-processing-ledger.json` after successful writes.
 
+### Detecting changes to already-synced Google events
+
+A synced Google/personal event can later be moved or renamed. Key the ledger on the event's **stable Google UID** (`googleUid`), NOT on a hash of `uid|start`, so a change is recognized as an update instead of a duplicate.
+
+1. Store `googleUid` (plus `start`, `end`, `title`, and the `outlookEventId`) in each `google-export-processing-ledger.json` record.
+2. On each run, match every current Google busy event to prior imports by `googleUid`:
+   - **Not in ledger** -> create a new Outlook event (and record its `googleUid`).
+   - **In ledger, unchanged** -> skip.
+   - **In ledger, but `start`/`end`/`title` differ** -> UPDATE the existing Outlook event (via the stored `outlookEventId`) with `workiq_update_event`, then update the ledger record. Do not create a new event.
+3. Keying on `uid|start` alone causes a moved event to look "new" (creating a duplicate at the new time while the old copy goes stale) or, if only the title changed, to be skipped entirely — both are wrong. Always reconcile by `googleUid`.
+4. Backfill `googleUid` onto existing future-dated ledger records (match current export by title+start) so changes to previously-synced events are also caught.
+
 ## Outlook -> Google shared calendar implementation outline
 
 1. Use `workiq_list_events` to read Outlook events for the next 45 days.
